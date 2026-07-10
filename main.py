@@ -42,7 +42,7 @@ def main() -> None:
         print("No articles found. Exiting.")
         sys.exit(0)
 
-    print("\n── Step 2: Processing & translating with Claude ──")
+    print("\n── Step 2: Processing & translating with Gemini ──")
     processed = process_news(articles)
     print(f"Selected top {len(processed)} articles")
 

@@ -1,18 +1,20 @@
 import json
 import os
 import re
+import time
 
-from openai import OpenAI
+import requests
 
-MODEL = "gpt-4o"
+MODEL = "gemini-flash-latest"
+API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 MAX_INPUT_ARTICLES = 50
 MAX_OUTPUT_ARTICLES = 10
 
 
 def process_news(articles: list[dict]) -> list[dict]:
-    """Rank, deduplicate, translate and summarise articles in Persian via GPT."""
+    """Rank, deduplicate, translate and summarise articles in Persian via Gemini."""
 
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    api_key = os.environ["GEMINI_API_KEY"]
 
     condensed = []
     for i, a in enumerate(articles[:MAX_INPUT_ARTICLES]):
@@ -53,20 +55,58 @@ def process_news(articles: list[dict]) -> list[dict]:
   }}
 ]"""
 
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": "تو یک روزنامه‌نگار متخصص هوش مصنوعی هستی که اخبار را به فارسی روان ترجمه و خلاصه می‌کنی.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.3,
-        max_tokens=4096,
-    )
+    payload = {
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": (
+                        "تو یک روزنامه‌نگار متخصص هوش مصنوعی هستی که "
+                        "اخبار را به فارسی روان ترجمه و خلاصه می‌کنی."
+                    )
+                }
+            ]
+        },
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 16384,
+            "responseMimeType": "application/json",
+        },
+    }
 
-    raw = response.choices[0].message.content.strip()
+    response = None
+    for attempt in range(3):
+        response = requests.post(
+            API_URL,
+            headers={
+                "Content-Type": "application/json",
+                "X-goog-api-key": api_key,
+            },
+            json=payload,
+            timeout=120,
+        )
+        if response.status_code in (429, 500, 503):
+            wait = 2 ** attempt
+            print(f"Gemini API {response.status_code}; retrying in {wait}s...")
+            time.sleep(wait)
+            continue
+        break
+
+    if response is None:
+        raise RuntimeError("Gemini API request failed")
+    response.raise_for_status()
+
+    data = response.json()
+    candidates = data.get("candidates") or []
+    if not candidates:
+        raise RuntimeError(f"Gemini returned no candidates: {data}")
+
+    candidate = candidates[0]
+    finish_reason = candidate.get("finishReason")
+    if finish_reason == "MAX_TOKENS":
+        raise RuntimeError("Gemini response was truncated (MAX_TOKENS)")
+
+    raw = candidate["content"]["parts"][0]["text"].strip()
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
 
