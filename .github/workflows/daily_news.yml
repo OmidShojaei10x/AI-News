@@ -12,11 +12,6 @@ on:
         description: "Force send regardless of Tehran time (for testing)"
         type: boolean
         default: true
-  push:
-    branches:
-      - claude/daily-ai-news-persian-umklbw
-    paths:
-      - ".github/workflows/daily_news.yml"
 
 jobs:
   send-digest:
@@ -42,5 +37,5 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           # workflow_dispatch always forces send; schedule checks Tehran time
-          FORCE_SEND: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && 'true' || 'false' }}
+          FORCE_SEND: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: python main.py
