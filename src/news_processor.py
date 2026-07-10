@@ -5,7 +5,7 @@ import time
 
 import requests
 
-MODEL = "gemini-flash-latest"
+MODEL = "gemini-3.5-flash"
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 MAX_INPUT_ARTICLES = 50
 MAX_OUTPUT_ARTICLES = 10
