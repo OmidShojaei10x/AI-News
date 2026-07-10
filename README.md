@@ -8,34 +8,66 @@
 RSS Feeds (11 منبع) → Gemini 3.5 Flash (ترجمه + رتبه‌بندی) → Telegram Bot
 ```
 
-منابع: TechCrunch · VentureBeat · MIT Technology Review · The Verge · Wired · AI News · Hugging Face · Google AI Blog · OpenAI Blog · DeepMind · The New Stack
+---
+
+## راه‌اندازی رایگان (پیشنهادی)
+
+> GitHub Actions و Railway برای شما کار نمی‌کنند (Actions غیرفعال / Railway پولی).  
+> دو راه **کاملاً رایگان** زیر را پیشنهاد می‌کنیم.
+
+### گزینه ۱: PythonAnywhere (ساده‌ترین — بدون کارت بانکی)
+
+1. ثبت‌نام رایگان در [pythonanywhere.com](https://www.pythonanywhere.com)
+2. تب **Consoles → Bash**:
+   ```bash
+   git clone https://github.com/OmidShojaei10x/AI-News.git
+   cd AI-News
+   pip install --user -r requirements.txt
+   ```
+3. تب **Web → Files** یا Bash — فایل `.env` بسازید:
+   ```
+   GEMINI_API_KEY=کلید-جمینای
+   TELEGRAM_BOT_TOKEN=توکن-ربات
+   TELEGRAM_CHAT_ID=918656204
+   FORCE_SEND=true
+   ```
+4. تب **Tasks** → **Create a new scheduled task**:
+   - زمان: `04:30` (UTC) = ۸ صبح تهران (زمستان)
+   - دستور:
+     ```bash
+     cd ~/AI-News && export $(cat .env | xargs) && python main.py
+     ```
+5. تب **Web → Allowlisted sites** — این دامنه‌ها را اضافه کنید:
+   - `generativelanguage.googleapis.com`
+   - `api.telegram.org`
+   - `techcrunch.com`, `venturebeat.com`, `technologyreview.com`, `theverge.com`, `wired.com`, `artificialintelligence-news.com`, `huggingface.co`, `blog.google`, `openai.com`, `deepmind.google`, `thenewstack.io`
+
+**تست:** در Bash اجرا کنید:
+```bash
+cd ~/AI-News && export $(cat .env | xargs) && python main.py
+```
 
 ---
 
-## راه‌اندازی (پیشنهادی: Railway)
+### گزینه ۲: Render (رایگان) + cron-job.org
 
-> **توجه:** اگر GitHub Actions برای حساب شما غیرفعال است (`Actions has been disabled for this user`)، از Railway استفاده کنید.
+1. ثبت‌نام در [render.com](https://render.com) (پلن Free)
+2. **New → Blueprint** → مخزن GitHub `AI-News` را وصل کنید
+3. Variables را پر کنید:
+   - `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+   - `CRON_SECRET` = یک رمز دلخواه (مثلاً `my-secret-123`)
+4. بعد از Deploy، URL سرویس را کپی کنید (مثلاً `https://news-ai-xxxx.onrender.com`)
+5. ثبت‌نام در [cron-job.org](https://cron-job.org) (رایگان)
+6. **Create cron job**:
+   - URL: `https://news-ai-xxxx.onrender.com/my-secret-123`
+   - Schedule: `30 4 * * *` (UTC)
+   - Method: GET
 
-### ۱. Deploy روی Railway
+Render در حالت Free بعد از چند دقیقه خاموش می‌شود؛ cron-job.org با ping روزانه آن را بیدار کرده و خبرنامه را ارسال می‌کند.
 
-1. بروید به [railway.app](https://railway.app) و با GitHub وارد شوید
-2. **New Project → Deploy from GitHub repo** → مخزن `AI-News` را انتخاب کنید
-3. در **Variables** این سه متغیر را اضافه کنید:
+---
 
-| Variable | مقدار |
-|---|---|
-| `GEMINI_API_KEY` | کلید از [Google AI Studio](https://aistudio.google.com/apikey) |
-| `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
-| `TELEGRAM_CHAT_ID` | شناسه چت (مثلاً `918656204`) |
-
-4. Cron از فایل `railway.toml` خوانده می‌شود: هر روز ساعت **۰۴:۳۰ UTC** (= ۸ صبح تهران در زمستان)
-5. در تابستان (IRDT) در Railway → Settings → Cron Schedule را به `30 3 * * *` تغییر دهید
-
-### ۲. تست دستی روی Railway
-
-در Railway → Service → **Deployments → Run** یا یک Deploy دستی با متغیر `FORCE_SEND=true` اجرا کنید.
-
-### ۳. تست محلی
+## تست محلی (هر زمان)
 
 ```bash
 pip install -r requirements.txt
@@ -47,37 +79,37 @@ FORCE_SEND=true python main.py
 
 ---
 
-## راه‌اندازی جایگزین: GitHub Actions
+## متغیرهای محیطی
 
-فقط اگر Actions برای حساب GitHub شما فعال باشد:
-
-1. **Settings → Secrets and variables → Actions** — سه secret بالا را اضافه کنید
-2. **Actions → Daily AI News Digest → Run workflow** با `force_send=true`
-
-اگر خطای `Actions has been disabled for this user` می‌گیرید، باید از [GitHub Support](https://support.github.com) درخواست فعال‌سازی کنید یا از Railway استفاده کنید.
+| Variable | توضیح |
+|---|---|
+| `GEMINI_API_KEY` | کلید از [Google AI Studio](https://aistudio.google.com/apikey) |
+| `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
+| `TELEGRAM_CHAT_ID` | شناسه چت (مثلاً `918656204`) |
+| `FORCE_SEND` | `true` برای ارسال فوری بدون چک ساعت |
+| `CRON_SECRET` | فقط برای `trigger_server.py` (Render + cron-job) |
 
 ---
 
 ## زمانبندی
 
-| پلتفرم | زمان اجرا |
-|---|---|
-| Railway | `30 4 * * *` UTC (زمستان) / `30 3 * * *` UTC (تابستان) |
-| GitHub Actions | هر دو زمان بالا (اگر فعال باشد) |
+| فصل | Cron (UTC) | معادل تهران |
+|---|---|---|
+| زمستان | `30 4 * * *` | ۰۸:۰۰ |
+| تابستان | `30 3 * * *` | ۰۸:۰۰ |
 
 ---
 
 ## ساختار پروژه
 
 ```
-News-AI/
-├── main.py
-├── railway.toml                   # Cron برای Railway
-├── requirements.txt
-├── src/
-│   ├── news_fetcher.py
-│   ├── news_processor.py          # Gemini 3.5 Flash
-│   └── telegram_sender.py
-└── .github/workflows/
-    └── daily_news.yml
+AI-News/
+├── main.py                 # اجرای مستقیم
+├── trigger_server.py       # HTTP trigger برای cron-job.org
+├── render.yaml             # Deploy رایگان Render
+├── railway.toml            # (اختیاری — نیاز به پلن پولی)
+└── src/
+    ├── news_fetcher.py
+    ├── news_processor.py   # Gemini 3.5 Flash
+    └── telegram_sender.py
 ```
