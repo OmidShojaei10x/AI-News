@@ -49,21 +49,39 @@ cd ~/AI-News && export $(cat .env | xargs) && python main.py
 
 ---
 
-### گزینه ۲: Render (رایگان) + cron-job.org
+### گزینه ۲: Render Cron Job
 
-1. ثبت‌نام در [render.com](https://render.com) (پلن Free)
-2. **New → Blueprint** → مخزن GitHub `AI-News` را وصل کنید
-3. Variables را پر کنید:
-   - `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
-   - `CRON_SECRET` = یک رمز دلخواه (مثلاً `my-secret-123`)
-4. بعد از Deploy، URL سرویس را کپی کنید (مثلاً `https://news-ai-xxxx.onrender.com`)
-5. ثبت‌نام در [cron-job.org](https://cron-job.org) (رایگان)
-6. **Create cron job**:
-   - URL: `https://news-ai-xxxx.onrender.com/my-secret-123`
-   - Schedule: `30 4 * * *` (UTC)
-   - Method: GET
+1. بروید به [render.com](https://render.com) → **New +** → **Cron Job**
+2. مخزن GitHub `AI-News` را وصل کنید
+3. این مقادیر را وارد کنید:
 
-Render در حالت Free بعد از چند دقیقه خاموش می‌شود؛ cron-job.org با ping روزانه آن را بیدار کرده و خبرنامه را ارسال می‌کند.
+| فیلد | مقدار |
+|---|---|
+| **Build Command** | `pip install -r requirements.txt` |
+| **Schedule** | `30 4 * * *` |
+| **Command** | `python main.py` |
+
+4. در **Environment Variables** اضافه کنید:
+
+| Key | Value |
+|---|---|
+| `GEMINI_API_KEY` | کلید Gemini |
+| `TELEGRAM_BOT_TOKEN` | توکن ربات |
+| `TELEGRAM_CHAT_ID` | `918656204` |
+
+5. **Instance Type**: Starter کافی است
+6. **Create Cron Job** → بعد از Deploy روی **Trigger Run** بزنید برای تست
+
+> **هزینه:** Cron Job در Render پولی است (حدود \$0.01 در روز).  
+> **زمان:** `30 4 * * *` = ۰۸:۰۰ صبح تهران (زمستان). در تابستان: `30 3 * * *`
+
+یا با Blueprint: **New → Blueprint** → مخزن را وصل کنید — `render.yaml` آماده است.
+
+---
+
+### گزینه ۳: Render Web (رایگان) + cron-job.org
+
+اگر Cron پولی Render را نمی‌خواهید، از `trigger_server.py` با پلن Free Web + [cron-job.org](https://cron-job.org) استفاده کنید (جزئیات در نسخه قبلی README).
 
 ---
 

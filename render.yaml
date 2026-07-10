@@ -1,13 +1,12 @@
 services:
-  - type: web
-    name: news-ai
+  - type: cron
+    name: news-ai-digest
     runtime: python
-    plan: free
+    plan: starter
+    schedule: "30 4 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python trigger_server.py
+    startCommand: python main.py
     envVars:
-      - key: CRON_SECRET
-        generateValue: true
       - key: GEMINI_API_KEY
         sync: false
       - key: TELEGRAM_BOT_TOKEN
