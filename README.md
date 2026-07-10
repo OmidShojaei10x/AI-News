@@ -5,59 +5,65 @@
 ## جریان کار
 
 ```
-RSS Feeds (11 منبع) → Claude (ترجمه + رتبه‌بندی) → Telegram Bot
+RSS Feeds (11 منبع) → Gemini 3.5 Flash (ترجمه + رتبه‌بندی) → Telegram Bot
 ```
 
 منابع: TechCrunch · VentureBeat · MIT Technology Review · The Verge · Wired · AI News · Hugging Face · Google AI Blog · OpenAI Blog · DeepMind · The New Stack
 
 ---
 
-## راه‌اندازی
+## راه‌اندازی (پیشنهادی: Railway)
 
-### ۱. ساخت ربات تلگرام
+> **توجه:** اگر GitHub Actions برای حساب شما غیرفعال است (`Actions has been disabled for this user`)، از Railway استفاده کنید.
 
-1. در تلگرام به **@BotFather** پیام دهید و `/newbot` را اجرا کنید
-2. یک نام و username برای ربات انتخاب کنید
-3. **Bot Token** را که BotFather می‌دهد کپی کنید
+### ۱. Deploy روی Railway
 
-### ۲. گرفتن Chat ID
+1. بروید به [railway.app](https://railway.app) و با GitHub وارد شوید
+2. **New Project → Deploy from GitHub repo** → مخزن `AI-News` را انتخاب کنید
+3. در **Variables** این سه متغیر را اضافه کنید:
 
-1. ربات را در تلگرام پیدا کرده و `/start` بزنید
-2. در مرورگر آدرس زیر را باز کنید (توکن ربات را جایگزین کنید):
-   ```
-   https://api.telegram.org/bot<TOKEN>/getUpdates
-   ```
-3. در پاسخ JSON، مقدار `chat.id` را بیابید — این **Chat ID** شماست
-
-> اگر می‌خواهید اخبار در یک گروه یا کانال دریافت شود، ربات را به آن اضافه کرده و به‌عنوان Admin تنظیم کنید، سپس Chat ID گروه/کانال را استفاده کنید.
-
-### ۳. تنظیم Secrets در GitHub
-
-در مخزن GitHub → **Settings → Secrets and variables → Actions → New repository secret** سه متغیر زیر را اضافه کنید:
-
-| نام Secret | مقدار |
+| Variable | مقدار |
 |---|---|
-| `OPENAI_API_KEY` | کلید API از [platform.openai.com](https://platform.openai.com) |
+| `GEMINI_API_KEY` | کلید از [Google AI Studio](https://aistudio.google.com/apikey) |
 | `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
-| `TELEGRAM_CHAT_ID` | شناسه چت یا گروه/کانال |
+| `TELEGRAM_CHAT_ID` | شناسه چت (مثلاً `918656204`) |
 
-### ۴. فعال‌سازی GitHub Actions
+4. Cron از فایل `railway.toml` خوانده می‌شود: هر روز ساعت **۰۴:۳۰ UTC** (= ۸ صبح تهران در زمستان)
+5. در تابستان (IRDT) در Railway → Settings → Cron Schedule را به `30 3 * * *` تغییر دهید
 
-پس از push کردن کد، به تب **Actions** در GitHub بروید و در صورت نیاز Actions را فعال کنید.
+### ۲. تست دستی روی Railway
+
+در Railway → Service → **Deployments → Run** یا یک Deploy دستی با متغیر `FORCE_SEND=true` اجرا کنید.
+
+### ۳. تست محلی
+
+```bash
+pip install -r requirements.txt
+export GEMINI_API_KEY="..."
+export TELEGRAM_BOT_TOKEN="..."
+export TELEGRAM_CHAT_ID="918656204"
+FORCE_SEND=true python main.py
+```
 
 ---
 
-## تست دستی
+## راه‌اندازی جایگزین: GitHub Actions
 
-از تب **Actions** روی **Daily AI News Digest** کلیک کرده و **Run workflow** را بزنید. گزینه `force_send` را فعال بگذارید تا بدون نیاز به ساعت ۸ صبح ارسال شود.
+فقط اگر Actions برای حساب GitHub شما فعال باشد:
+
+1. **Settings → Secrets and variables → Actions** — سه secret بالا را اضافه کنید
+2. **Actions → Daily AI News Digest → Run workflow** با `force_send=true`
+
+اگر خطای `Actions has been disabled for this user` می‌گیرید، باید از [GitHub Support](https://support.github.com) درخواست فعال‌سازی کنید یا از Railway استفاده کنید.
 
 ---
 
 ## زمانبندی
 
-- GitHub Actions دو بار در روز اجرا می‌شود (ساعت ۳:۳۰ و ۴:۳۰ UTC)
-- اسکریپت Python بررسی می‌کند آیا ساعت تهران در بازه ۷:۴۵–۸:۳۰ صبح است
-- این رویکرد هم زمستان (IRST = UTC+3:30) و هم تابستان (IRDT = UTC+4:30) را پوشش می‌دهد
+| پلتفرم | زمان اجرا |
+|---|---|
+| Railway | `30 4 * * *` UTC (زمستان) / `30 3 * * *` UTC (تابستان) |
+| GitHub Actions | هر دو زمان بالا (اگر فعال باشد) |
 
 ---
 
@@ -65,12 +71,13 @@ RSS Feeds (11 منبع) → Claude (ترجمه + رتبه‌بندی) → Telegr
 
 ```
 News-AI/
-├── main.py                        # نقطه ورود اصلی
+├── main.py
+├── railway.toml                   # Cron برای Railway
 ├── requirements.txt
 ├── src/
-│   ├── news_fetcher.py            # دریافت اخبار از RSS
-│   ├── news_processor.py          # پردازش و ترجمه با Claude
-│   └── telegram_sender.py         # ارسال به تلگرام
+│   ├── news_fetcher.py
+│   ├── news_processor.py          # Gemini 3.5 Flash
+│   └── telegram_sender.py
 └── .github/workflows/
-    └── daily_news.yml             # زمانبندی خودکار
+    └── daily_news.yml
 ```

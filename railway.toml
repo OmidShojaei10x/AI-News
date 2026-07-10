@@ -1,2 +1,8 @@
+[build]
+builder = "RAILPACK"
+
 [deploy]
 startCommand = "python main.py"
+# 04:30 UTC = 08:00 Tehran (winter IRST). In summer switch to "30 3 * * *" in Railway dashboard.
+cronSchedule = "30 4 * * *"
+restartPolicyType = "never"
