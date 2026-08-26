@@ -155,6 +155,33 @@ def _fetch_feed(feed_info: dict) -> list[dict]:
     return articles
 
 
+def _fetch_og_image(url: str) -> str:
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+        for prop in ("og:image", "twitter:image"):
+            tag = soup.find("meta", property=prop) or soup.find(
+                "meta", attrs={"name": prop}
+            )
+            if tag and tag.get("content", "").startswith("http"):
+                return tag["content"]
+    except Exception as exc:
+        print(f"    OG image fetch failed for {url[:60]}: {exc}")
+    return ""
+
+
+def enrich_images(articles: list[dict]) -> list[dict]:
+    """Fill missing image_url from page Open Graph tags."""
+    for article in articles:
+        if not article.get("image_url"):
+            img = _fetch_og_image(article["url"])
+            if img:
+                article["image_url"] = img
+            time.sleep(0.3)
+    return articles
+
+
 def fetch_all_news() -> list[dict]:
     all_articles: list[dict] = []
 
@@ -175,4 +202,4 @@ def fetch_all_news() -> list[dict]:
 
     # newest first
     unique.sort(key=lambda x: x["published"], reverse=True)
-    return unique
+    return enrich_images(unique)
