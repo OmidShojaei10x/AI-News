@@ -17,6 +17,7 @@ def run_digest() -> None:
     """Fetch, process, and send the daily AI news digest."""
     from src.news_fetcher import fetch_all_news
     from src.news_processor import process_news
+    from src.supabase_storage import save_articles
     from src.telegram_sender import send_daily_digest
 
     print("── Step 1: Fetching AI news from the last 24 hours ──")
@@ -35,7 +36,10 @@ def run_digest() -> None:
         print("No articles after processing. Exiting.")
         return
 
-    print("\n── Step 3: Sending to Telegram ──")
+    print("\n── Step 3: Saving to Supabase ──")
+    save_articles(processed)
+
+    print("\n── Step 4: Sending to Telegram ──")
     send_daily_digest(processed)
     print("\n✓ Daily AI news digest sent successfully!")
 

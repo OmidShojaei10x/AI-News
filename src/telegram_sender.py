@@ -92,7 +92,7 @@ def send_daily_digest(articles: list[dict]) -> None:
         "📡 <b>خبرنامه روزانه هوش مصنوعی</b>\n"
         f"📅 {day_name} — {date_str}\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"🤖 <b>{len(articles)} خبر مهم</b> از ۲۴ ساعت گذشته در دنیای هوش مصنوعی"
+        f"🤖 <b>{len(articles)} خبر برتر</b> از ۲۴ ساعت گذشته در دنیای هوش مصنوعی"
     )
     _send_message(header)
     time.sleep(1)
