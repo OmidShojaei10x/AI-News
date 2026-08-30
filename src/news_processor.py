@@ -8,13 +8,84 @@ import requests
 MODEL = "gemini-3.5-flash"
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 MAX_INPUT_ARTICLES = 50
-MAX_OUTPUT_ARTICLES = 10
+MAX_OUTPUT_ARTICLES = 3
+
+
+def _importance_score(article: dict) -> int:
+    text = f"{article.get('title', '')} {article.get('description', '')}".lower()
+    score = 0
+    high_impact = [
+        "lawsuit", "sue", "anthropic", "openai", "copyright", "regulation",
+        "safety", "control", "escape", "cursor", "spacex", "musk", "frontier",
+        "شکایت", "آنتروپیک", "اوپن‌ای‌آی", "کنترل", "فرار",
+    ]
+    low_impact = ["vc", "a16z", "betting small", "interview", "opinion"]
+    for kw in high_impact:
+        if kw in text:
+            score += 3
+    for kw in low_impact:
+        if kw in text:
+            score -= 4
+    if article.get("title_fa") and article.get("summary_fa"):
+        score += 2
+    return score
+
+
+def _fallback_process(articles: list[dict]) -> list[dict]:
+    """Lightweight ranking when Gemini is unavailable."""
+    priority_sources = {
+        "TechCrunch": 5,
+        "The Verge": 5,
+        "Reuters": 5,
+        "Engadget": 4,
+        "The Guardian": 4,
+        "MIT Technology Review": 4,
+        "VentureBeat": 3,
+        "OpenAI Blog": 3,
+        "DeepMind": 3,
+        "Google AI Blog": 3,
+    }
+
+    scored = sorted(
+        articles,
+        key=lambda a: (
+            _importance_score(a),
+            priority_sources.get(a.get("source", ""), 1),
+            bool(a.get("image_url")),
+            a.get("published", ""),
+        ),
+        reverse=True,
+    )
+
+    result = []
+    for rank, article in enumerate(scored[:MAX_OUTPUT_ARTICLES], start=1):
+        title_fa = article.get("title_fa") or article["title"]
+        summary_fa = article.get("summary_fa") or (
+            (article.get("description") or article["title"])[:400]
+        )
+        result.append(
+            {
+                "title_fa": title_fa,
+                "summary_fa": summary_fa,
+                "importance_rank": rank,
+                "title_en": article["title"],
+                "source": article["source"],
+                "url": article["url"],
+                "published": article["published"],
+                "image_url": article.get("image_url", ""),
+                "video_url": article.get("video_url", ""),
+            }
+        )
+    return result
 
 
 def process_news(articles: list[dict]) -> list[dict]:
     """Rank, deduplicate, translate and summarise articles in Persian via Gemini."""
 
-    api_key = os.environ["GEMINI_API_KEY"]
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        print("GEMINI_API_KEY not set; using fallback ranking (English titles).")
+        return _fallback_process(articles)
 
     condensed = []
     for i, a in enumerate(articles[:MAX_INPUT_ARTICLES]):
