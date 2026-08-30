@@ -14,13 +14,23 @@ def _is_tehran_send_window() -> bool:
 
 
 def run_digest() -> None:
-    """Fetch, process, and send the daily AI news digest."""
+    """Fetch, process, save to Supabase, and send the daily AI news digest."""
     from src.news_fetcher import fetch_all_news
-    from src.news_processor import process_news
+    from src.news_processor import process_news, MAX_OUTPUT_ARTICLES
+    from src.supabase_store import mark_sent, save_articles
     from src.telegram_sender import send_daily_digest
 
     print("── Step 1: Fetching AI news from the last 24 hours ──")
     articles = fetch_all_news()
+    if len(articles) < MAX_OUTPUT_ARTICLES:
+        from src.news_supplement import supplement_articles
+
+        print(f"  Only {len(articles)} RSS articles; supplementing curated stories...")
+        articles = supplement_articles(articles, target=MAX_OUTPUT_ARTICLES)
+    from src.news_supplement import apply_persian_overrides, enrich_images
+
+    articles = apply_persian_overrides(articles)
+    articles = enrich_images(articles)
     print(f"Total unique articles: {len(articles)}")
 
     if not articles:
@@ -28,15 +38,20 @@ def run_digest() -> None:
         return
 
     print("\n── Step 2: Processing & translating with Gemini ──")
-    processed = process_news(articles)
+    processed = process_news(articles)[:MAX_OUTPUT_ARTICLES]
     print(f"Selected top {len(processed)} articles")
 
     if not processed:
         print("No articles after processing. Exiting.")
         return
 
-    print("\n── Step 3: Sending to Telegram ──")
-    send_daily_digest(processed)
+    print("\n── Step 3: Saving to Supabase ──")
+    saved = save_articles(processed)
+    print(f"Saved {len(saved)} articles to Supabase")
+
+    print("\n── Step 4: Sending to Telegram ──")
+    send_daily_digest(saved)
+    mark_sent(saved)
     print("\n✓ Daily AI news digest sent successfully!")
 
 
