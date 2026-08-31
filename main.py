@@ -35,8 +35,19 @@ def run_digest() -> None:
         print("No articles after processing. Exiting.")
         return
 
-    print("\n── Step 3: Sending to Telegram ──")
-    send_daily_digest(processed)
+    print("\n── Step 3: Saving to Supabase ──")
+    from src.supabase_storage import mark_sent, save_digest
+
+    saved = save_digest(processed[:3])
+    top = processed[:3]
+
+    print("\n── Step 4: Sending to Telegram ──")
+    send_daily_digest(top)
+
+    ids = [row["id"] for row in saved if isinstance(row, dict) and row.get("id")]
+    if ids:
+        mark_sent(ids)
+
     print("\n✓ Daily AI news digest sent successfully!")
 
 
