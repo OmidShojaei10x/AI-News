@@ -116,3 +116,9 @@ def send_daily_digest(articles: list[dict]) -> None:
         "⚡️ <i>پردازش شده با هوش مصنوعی</i>"
     )
     _send_message(footer)
+
+    from src.supabase_storage import mark_sent
+
+    sent_ids = [a["supabase_id"] for a in articles if a.get("supabase_id")]
+    if sent_ids:
+        mark_sent(sent_ids)

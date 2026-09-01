@@ -104,6 +104,9 @@ FORCE_SEND=true python main.py
 | `GEMINI_API_KEY` | کلید از [Google AI Studio](https://aistudio.google.com/apikey) |
 | `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
 | `TELEGRAM_CHAT_ID` | شناسه چت (مثلاً `918656204`) |
+| `SUPABASE_URL` | آدرس پروژه Supabase |
+| `SUPABASE_ANON_KEY` | کلید anon Supabase |
+| `TOP_NEWS_COUNT` | تعداد اخبار (پیش‌فرض: `3`) |
 | `FORCE_SEND` | `true` برای ارسال فوری بدون چک ساعت |
 | `CRON_SECRET` | فقط برای `trigger_server.py` (Render + cron-job) |
 

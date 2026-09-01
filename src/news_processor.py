@@ -8,7 +8,7 @@ import requests
 MODEL = "gemini-3.5-flash"
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 MAX_INPUT_ARTICLES = 50
-MAX_OUTPUT_ARTICLES = 10
+MAX_OUTPUT_ARTICLES = 3
 
 
 def process_news(articles: list[dict]) -> list[dict]:
@@ -39,7 +39,7 @@ def process_news(articles: list[dict]) -> list[dict]:
 
 وظایف:
 ۱. خبرهای تکراری یا خیلی مشابه را حذف کن (یکی نگه‌دار).
-۲. حداکثر {MAX_OUTPUT_ARTICLES} خبر مهم را بر اساس تأثیرگذاری و جذابیت انتخاب کن.
+۲. دقیقاً {MAX_OUTPUT_ARTICLES} خبر مهم و برتر را بر اساس تأثیرگذاری و جذابیت انتخاب کن.
 ۳. برای هر خبر:
    - عنوان را به فارسی روان و دقیق ترجمه کن.
    - یک خلاصه ۲ تا ۴ جمله‌ای به فارسی بنویس که اهمیت و جزئیات کلیدی را توضیح دهد.
