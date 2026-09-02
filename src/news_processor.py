@@ -10,11 +10,70 @@ API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:gene
 MAX_INPUT_ARTICLES = 50
 MAX_OUTPUT_ARTICLES = 10
 
+_IMPORTANCE_KEYWORDS = {
+    "openai": 3,
+    "astra": 5,
+    "cyber": 4,
+    "critical": 4,
+    "anthropic": 3,
+    "google": 2,
+    "gemini": 3,
+    "deepmind": 3,
+    "chatgpt": 3,
+    "epic": 3,
+    "health": 2,
+    "regulation": 4,
+    "eu": 3,
+    "pentagon": 3,
+    "hack": 3,
+    "agent": 2,
+    "video": 2,
+    "model": 1,
+    "ai": 1,
+}
+
+
+def _score_article(article: dict) -> int:
+    text = f"{article['title']} {article.get('description', '')}".lower()
+    score = 0
+    for keyword, weight in _IMPORTANCE_KEYWORDS.items():
+        if keyword in text:
+            score += weight
+    if article.get("image_url"):
+        score += 1
+    if article.get("video_url"):
+        score += 2
+    return score
+
+
+def _fallback_process_news(articles: list[dict], limit: int = 3) -> list[dict]:
+    """Rank articles without Gemini when the API key is unavailable."""
+    ranked = sorted(articles, key=_score_article, reverse=True)[:limit]
+    result = []
+    for rank, article in enumerate(ranked, start=1):
+        result.append(
+            {
+                "title_fa": article["title"],
+                "summary_fa": (article.get("description") or article["title"])[:500],
+                "importance_rank": rank,
+                "title_en": article["title"],
+                "source": article["source"],
+                "url": article["url"],
+                "published": article["published"],
+                "image_url": article.get("image_url", ""),
+                "video_url": article.get("video_url", ""),
+            }
+        )
+    return result
+
 
 def process_news(articles: list[dict]) -> list[dict]:
     """Rank, deduplicate, translate and summarise articles in Persian via Gemini."""
 
-    api_key = os.environ["GEMINI_API_KEY"]
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        print("GEMINI_API_KEY not set; using keyword-based fallback ranking.")
+        return _fallback_process_news(articles, limit=3)
 
     condensed = []
     for i, a in enumerate(articles[:MAX_INPUT_ARTICLES]):
