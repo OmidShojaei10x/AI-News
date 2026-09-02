@@ -29,14 +29,26 @@ def run_digest() -> None:
 
     print("\n── Step 2: Processing & translating with Gemini ──")
     processed = process_news(articles)
-    print(f"Selected top {len(processed)} articles")
+    top_articles = processed[:3]
+    print(f"Selected top {len(top_articles)} articles")
 
-    if not processed:
+    if not top_articles:
         print("No articles after processing. Exiting.")
         return
 
-    print("\n── Step 3: Sending to Telegram ──")
-    send_daily_digest(processed)
+    print("\n── Step 3: Saving to Supabase ──")
+    from src.supabase_storage import mark_sent, save_digest
+
+    saved = save_digest(top_articles)
+    if saved:
+        print(f"Saved {len(saved)} articles to Supabase")
+
+    print("\n── Step 4: Sending to Telegram ──")
+    send_daily_digest(top_articles)
+
+    if saved:
+        mark_sent([row["id"] for row in saved])
+
     print("\n✓ Daily AI news digest sent successfully!")
 
 
