@@ -8,11 +8,14 @@ import requests
 MODEL = "gemini-3.5-flash"
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 MAX_INPUT_ARTICLES = 50
-MAX_OUTPUT_ARTICLES = 10
+MAX_OUTPUT_ARTICLES = 3
 
 
 def process_news(articles: list[dict]) -> list[dict]:
-    """Rank, deduplicate, translate and summarise articles in Persian via Gemini."""
+    """Filter important news, translate and summarise in Persian via Gemini."""
+
+    if not articles:
+        return []
 
     api_key = os.environ["GEMINI_API_KEY"]
 
@@ -33,16 +36,24 @@ def process_news(articles: list[dict]) -> list[dict]:
     articles_json = json.dumps(condensed, ensure_ascii=False, indent=2)
 
     prompt = f"""تو یک روزنامه‌نگار متخصص در حوزه هوش مصنوعی هستی.
-لیست زیر اخبار ۲۴ ساعت گذشته دنیای هوش مصنوعی است:
+لیست زیر اخبار اخیر دنیای هوش مصنوعی است:
 
 {articles_json}
 
 وظایف:
 ۱. خبرهای تکراری یا خیلی مشابه را حذف کن (یکی نگه‌دار).
-۲. حداکثر {MAX_OUTPUT_ARTICLES} خبر مهم را بر اساس تأثیرگذاری و جذابیت انتخاب کن.
-۳. برای هر خبر:
+۲. فقط خبرهای **واقعاً مهم** را انتخاب کن. معیار اهمیت:
+   - معرفی مدل/محصول جدید (OpenAI, Google, Anthropic, Meta, ...)
+   - ادغام، خرید، یا سرمایه‌گذاری بزرگ
+   - قوانین و تصمیمات دولتی
+   - حوادث امنیتی/ایمنی AI
+   - رقابت و همکاری‌های استراتژیک مهم
+   - تحقیقات برجسته با تأثیر صنعتی
+۳. خبرهای معمولی، تبلیغاتی، رویدادهای کوچک، یا پادکست/ویدیوی عمومی را **رد کن**.
+۴. اگر هیچ خبر مهمی نیست → آرایه خالی [] برگردان.
+۵. حداکثر {MAX_OUTPUT_ARTICLES} خبر مهم. برای هر خبر:
    - عنوان را به فارسی روان و دقیق ترجمه کن.
-   - یک خلاصه ۲ تا ۴ جمله‌ای به فارسی بنویس که اهمیت و جزئیات کلیدی را توضیح دهد.
+   - یک خلاصه ۲ تا ۴ جمله‌ای به فارسی بنویس.
    - مهم‌ترین خبر، importance_rank=1 داشته باشد.
 
 فقط یک JSON خالص (بدون markdown، بدون توضیح اضافه) برگردان:
@@ -60,8 +71,9 @@ def process_news(articles: list[dict]) -> list[dict]:
             "parts": [
                 {
                     "text": (
-                        "تو یک روزنامه‌نگار متخصص هوش مصنوعی هستی که "
-                        "اخبار را به فارسی روان ترجمه و خلاصه می‌کنی."
+                        "تو یک روزنامه‌نگار متخصص هوش مصنوعی هستی. "
+                        "فقط خبرهای واقعاً مهم را انتخاب می‌کنی و "
+                        "اگر خبر مهمی نیست آرایه خالی برمی‌گردانی."
                     )
                 }
             ]
@@ -111,6 +123,9 @@ def process_news(articles: list[dict]) -> list[dict]:
     raw = re.sub(r"\s*```$", "", raw)
 
     processed: list[dict] = json.loads(raw)
+    if not processed:
+        print("No important news found by Gemini.")
+        return []
 
     article_map = {i: a for i, a in enumerate(articles[:MAX_INPUT_ARTICLES])}
     result = []
@@ -132,4 +147,4 @@ def process_news(articles: list[dict]) -> list[dict]:
             }
         )
 
-    return result
+    return result[:MAX_OUTPUT_ARTICLES]

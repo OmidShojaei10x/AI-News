@@ -1,20 +1,32 @@
-name: Daily AI News Digest
+name: AI News Smart Alerts
 
 on:
   schedule:
-    # 04:30 UTC = 08:00 Tehran winter (IRST = UTC+3:30)
-    - cron: "30 4 * * *"
-    # 03:30 UTC = 08:00 Tehran summer (IRDT = UTC+4:30)
-    - cron: "30 3 * * *"
+    # Winter IRST (UTC+3:30): 9:00, 12:00, 21:00 Tehran
+    - cron: "30 5 * * *"   # 09:00 morning
+    - cron: "30 8 * * *"   # 12:00 noon
+    - cron: "30 17 * * *"  # 21:00 evening
+    # Summer IRDT (UTC+4:30): 9:00, 12:00, 21:00 Tehran
+    - cron: "30 4 * * *"   # 09:00 morning
+    - cron: "30 7 * * *"   # 12:00 noon
+    - cron: "30 16 * * *"  # 21:00 evening
   workflow_dispatch:
     inputs:
+      check_slot:
+        description: "Override check slot (morning/noon/evening)"
+        type: choice
+        options:
+          - morning
+          - noon
+          - evening
+        default: morning
       force_send:
-        description: "Force send regardless of Tehran time (for testing)"
+        description: "Force run regardless of Tehran time window"
         type: boolean
         default: true
 
 jobs:
-  send-digest:
+  check-news:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -31,13 +43,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Send daily AI news digest
+      - name: Run AI news check
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          # workflow_dispatch always forces send; schedule checks Tehran time
+          CHECK_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.check_slot || '' }}
           FORCE_SEND: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: python main.py

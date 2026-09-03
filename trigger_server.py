@@ -5,7 +5,7 @@ import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from main import run_digest
+from main import run_check
 
 PORT = int(os.environ.get("PORT", "8080"))
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
@@ -34,7 +34,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         def _job() -> None:
             try:
-                run_digest()
+                run_check()
             except Exception as exc:
                 print(f"Digest failed: {type(exc).__name__}: {exc}")
 
