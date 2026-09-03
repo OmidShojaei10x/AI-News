@@ -1,15 +1,55 @@
+# Render cron jobs are optional helpers for fetching only.
+# Full pipeline (filter + translate + publish) runs via Cursor Automation + Composer.
+# See AUTOMATION_PROMPT.md
+
 services:
   - type: cron
-    name: news-ai-digest
+    name: news-ai-morning-fetch
     runtime: python
     plan: starter
-    schedule: "30 4 * * *"
+    schedule: "30 5 * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
+    startCommand: CHECK_SLOT=morning python scripts/fetch_articles.py
     envVars:
-      - key: GEMINI_API_KEY
-        sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+  - type: cron
+    name: news-ai-noon-fetch
+    runtime: python
+    plan: starter
+    schedule: "30 8 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: CHECK_SLOT=noon python scripts/fetch_articles.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+  - type: cron
+    name: news-ai-evening-fetch
+    runtime: python
+    plan: starter
+    schedule: "30 17 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: CHECK_SLOT=evening python scripts/fetch_articles.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
         sync: false
