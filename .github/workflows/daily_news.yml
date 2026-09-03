@@ -1,55 +1,37 @@
-name: AI News Smart Alerts
+name: AI News Fetch (Cursor Automation handles processing)
 
 on:
-  schedule:
-    # Winter IRST (UTC+3:30): 9:00, 12:00, 21:00 Tehran
-    - cron: "30 5 * * *"   # 09:00 morning
-    - cron: "30 8 * * *"   # 12:00 noon
-    - cron: "30 17 * * *"  # 21:00 evening
-    # Summer IRDT (UTC+4:30): 9:00, 12:00, 21:00 Tehran
-    - cron: "30 4 * * *"   # 09:00 morning
-    - cron: "30 7 * * *"   # 12:00 noon
-    - cron: "30 16 * * *"  # 21:00 evening
   workflow_dispatch:
     inputs:
       check_slot:
-        description: "Override check slot (morning/noon/evening)"
+        description: "Check slot override"
         type: choice
         options:
           - morning
           - noon
           - evening
         default: morning
-      force_send:
-        description: "Force run regardless of Tehran time window"
-        type: boolean
-        default: true
 
 jobs:
-  check-news:
+  fetch-articles:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt
 
-      - name: Run AI news check
+      - name: Fetch articles (Composer processes in Cursor Automation)
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          CHECK_SLOT: ${{ github.event_name == 'workflow_dispatch' && inputs.check_slot || '' }}
-          FORCE_SEND: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
-        run: python main.py
+          CHECK_SLOT: ${{ inputs.check_slot }}
+        run: python scripts/fetch_articles.py

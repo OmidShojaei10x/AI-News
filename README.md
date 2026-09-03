@@ -1,34 +1,30 @@
 # هشدار هوشمند اخبار هوش مصنوعی
 
-بررسی خودکار اخبار AI **۳ بار در روز** (۹:۰۰، ۱۲:۰۰، ۲۱:۰۰ به وقت تهران). فقط خبرهای **مهم** (۰ تا ۳) به تلگرام ارسال می‌شوند. همه بررسی‌ها در Supabase لاگ می‌شوند.
+بررسی خودکار اخبار AI **۳ بار در روز** (۹:۰۰، ۱۲:۰۰، ۲۱:۰۰ به وقت تهران) با **Cursor Automation + Composer**.
+
+فقط خبرهای **مهم** (۰ تا ۳) به کانال تلگرام ارسال می‌شوند. همه بررسی‌ها در Supabase لاگ می‌شوند.
 
 ## جریان کار
 
 ```
-RSS Feeds → ددآپ (Supabase) → Gemini (فیلتر اهمیت) → Supabase → Telegram
+RSS Feeds → Composer (فیلتر + ترجمه فارسی) → Supabase → کانال تلگرام
 ```
 
+- **پردازش هوشمند:** Composer (مدل Cursor) — **بدون Gemini API**
 - **۹ صبح:** بازه ۲۴ ساعت گذشته
 - **۱۲ ظهر و ۲۱ شب:** بازه ۸ ساعت گذشته
-- **بدون خبر مهم:** فقط لاگ در Supabase، بدون پیام تلگرام
+- **بدون خبر مهم:** فقط لاگ در Supabase
 
-پرامپت اتوماسیون Cursor: [`AUTOMATION_PROMPT.md`](AUTOMATION_PROMPT.md)
+پرامپت اتوماسیون: [`AUTOMATION_PROMPT.md`](AUTOMATION_PROMPT.md)
 
 ---
 
-## تست محلی
+## اجرا (Cursor Automation)
 
-```bash
-pip install -r requirements.txt
-export GEMINI_API_KEY="..."
-export TELEGRAM_BOT_TOKEN="..."
-export TELEGRAM_CHAT_ID="-1004366053988"
-export SUPABASE_URL="https://uwpkiioexphefbiddmmf.supabase.co"
-export SUPABASE_ANON_KEY="..."
-CHECK_SLOT=morning FORCE_SEND=true python main.py
-```
-
-`CHECK_SLOT` می‌تواند `morning`، `noon` یا `evening` باشد.
+۱. `python scripts/fetch_articles.py` — جمع‌آوری اخبار
+۲. Composer اخبار مهم را انتخاب و به فارسی ترجمه می‌کند
+۳. `python scripts/publish_articles.py` — ذخیره + ارسال به کانال
+۴. یا `python scripts/log_check.py` — فقط لاگ (بدون خبر مهم)
 
 ---
 
@@ -36,18 +32,15 @@ CHECK_SLOT=morning FORCE_SEND=true python main.py
 
 | Variable | توضیح |
 |---|---|
-| `GEMINI_API_KEY` | کلید از [Google AI Studio](https://aistudio.google.com/apikey) |
 | `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
-| `TELEGRAM_CHAT_ID` | شناسه کانال تلگرام (`-1004366053988` — [اخبار هوش مصنوعی](https://t.me/+JPVZfc1WuRQ3NGRk)) |
+| `TELEGRAM_CHAT_ID` | کانال: `-1004366053988` ([اخبار هوش مصنوعی](https://t.me/+JPVZfc1WuRQ3NGRk)) |
 | `SUPABASE_URL` | آدرس پروژه Supabase |
 | `SUPABASE_ANON_KEY` | کلید anon/publishable Supabase |
 | `CHECK_SLOT` | `morning` / `noon` / `evening` (اختیاری) |
-| `FORCE_SEND` | `true` برای اجرا بدون چک پنجره زمانی |
-| `CRON_SECRET` | فقط برای `trigger_server.py` |
 
 ---
 
-## زمانبندی (UTC)
+## زمانبندی Cron (UTC)
 
 | بازه | ۹ صبح | ۱۲ ظهر | ۲۱ شب |
 |---|---|---|---|
@@ -60,13 +53,14 @@ CHECK_SLOT=morning FORCE_SEND=true python main.py
 
 ```
 AI-News/
-├── main.py                 # اجرای بررسی هوشمند
 ├── AUTOMATION_PROMPT.md    # پرامپت اتوماسیون Cursor
-├── trigger_server.py       # HTTP trigger برای cron-job.org
-├── render.yaml             # ۳ Cron Job (صبح/ظهر/شب)
+├── main.py                 # تشخیص check_slot
+├── scripts/
+│   ├── fetch_articles.py   # جمع‌آوری RSS
+│   ├── publish_articles.py # ذخیره + ارسال
+│   └── log_check.py        # لاگ بدون ارسال
 └── src/
-    ├── news_fetcher.py     # RSS + OG image
-    ├── news_processor.py   # Gemini فیلتر اهمیت
-    ├── supabase_storage.py # ذخیره + ددآپ + لاگ
-    └── telegram_sender.py  # ارسال هشدار تکی
+    ├── news_fetcher.py
+    ├── supabase_storage.py
+    └── telegram_sender.py
 ```

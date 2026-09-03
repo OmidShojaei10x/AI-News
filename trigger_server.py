@@ -5,7 +5,8 @@ import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from main import run_check
+import subprocess
+import sys
 
 PORT = int(os.environ.get("PORT", "8080"))
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
@@ -34,9 +35,12 @@ class _Handler(BaseHTTPRequestHandler):
 
         def _job() -> None:
             try:
-                run_check()
+                subprocess.run(
+                    [sys.executable, "scripts/fetch_articles.py"],
+                    check=True,
+                )
             except Exception as exc:
-                print(f"Digest failed: {type(exc).__name__}: {exc}")
+                print(f"Fetch failed: {type(exc).__name__}: {exc}")
 
         threading.Thread(target=_job, daemon=True).start()
         self._respond(202, {"ok": True, "status": "started"})
