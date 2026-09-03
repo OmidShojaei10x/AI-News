@@ -18,7 +18,7 @@
 ## متغیرهای محیطی (هرگز در خروجی لو نده)
 - `GEMINI_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
+- `TELEGRAM_CHAT_ID` — کانال اخبار هوش مصنوعی: `-1004366053988` (https://t.me/+JPVZfc1WuRQ3NGRk)
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 
@@ -65,7 +65,8 @@
 - اگر خبر مهم بود: در `ai_news` ذخیره کن (`check_slot`: morning/noon/evening)
 - همیشه: یک ردیف در `ai_news_checks` با `articles_found`, `articles_sent`, `check_slot`
 
-### ۶. ارسال تلگرام
+### ۶. ارسال تلگرام (کانال)
+**مقصد:** کانال «اخبار هوش مصنوعی» — `TELEGRAM_CHAT_ID=-1004366053988`
 **فقط اگر خبر مهم بود:**
 - هر خبر = یک پیام جدا
 - اگر عکس دارد: `sendPhoto` با caption فارسی

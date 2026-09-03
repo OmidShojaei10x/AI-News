@@ -22,7 +22,7 @@ RSS Feeds → ددآپ (Supabase) → Gemini (فیلتر اهمیت) → Supabas
 pip install -r requirements.txt
 export GEMINI_API_KEY="..."
 export TELEGRAM_BOT_TOKEN="..."
-export TELEGRAM_CHAT_ID="918656204"
+export TELEGRAM_CHAT_ID="-1004366053988"
 export SUPABASE_URL="https://uwpkiioexphefbiddmmf.supabase.co"
 export SUPABASE_ANON_KEY="..."
 CHECK_SLOT=morning FORCE_SEND=true python main.py
@@ -38,7 +38,7 @@ CHECK_SLOT=morning FORCE_SEND=true python main.py
 |---|---|
 | `GEMINI_API_KEY` | کلید از [Google AI Studio](https://aistudio.google.com/apikey) |
 | `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
-| `TELEGRAM_CHAT_ID` | شناسه چت (مثلاً `918656204`) |
+| `TELEGRAM_CHAT_ID` | شناسه کانال تلگرام (`-1004366053988` — [اخبار هوش مصنوعی](https://t.me/+JPVZfc1WuRQ3NGRk)) |
 | `SUPABASE_URL` | آدرس پروژه Supabase |
 | `SUPABASE_ANON_KEY` | کلید anon/publishable Supabase |
 | `CHECK_SLOT` | `morning` / `noon` / `evening` (اختیاری) |

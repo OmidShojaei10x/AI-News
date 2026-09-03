@@ -4,7 +4,8 @@ import time
 import requests
 
 _BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+# Channel: اخبار هوش مصنوعی — https://t.me/+JPVZfc1WuRQ3NGRk
+_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "-1004366053988")
 _API = f"https://api.telegram.org/bot{_BOT_TOKEN}"
 
 _SLOT_LABELS = {
