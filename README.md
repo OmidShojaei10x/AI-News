@@ -5,7 +5,7 @@
 ## جریان کار
 
 ```
-RSS Feeds (11 منبع) → Gemini 3.5 Flash (ترجمه + رتبه‌بندی) → Telegram Bot
+RSS Feeds (11 منبع) → Gemini 3.5 Flash (ترجمه + رتبه‌بندی) → Supabase → Telegram Bot
 ```
 
 ---
@@ -104,6 +104,8 @@ FORCE_SEND=true python main.py
 | `GEMINI_API_KEY` | کلید از [Google AI Studio](https://aistudio.google.com/apikey) |
 | `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
 | `TELEGRAM_CHAT_ID` | شناسه چت (مثلاً `918656204`) |
+| `SUPABASE_URL` | آدرس پروژه Supabase |
+| `SUPABASE_ANON_KEY` | کلید anon/publishable Supabase |
 | `FORCE_SEND` | `true` برای ارسال فوری بدون چک ساعت |
 | `CRON_SECRET` | فقط برای `trigger_server.py` (Render + cron-job) |
 
@@ -129,5 +131,6 @@ AI-News/
 └── src/
     ├── news_fetcher.py
     ├── news_processor.py   # Gemini 3.5 Flash
+    ├── supabase_storage.py # ذخیره در Supabase
     └── telegram_sender.py
 ```

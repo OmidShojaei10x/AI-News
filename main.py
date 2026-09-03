@@ -17,6 +17,7 @@ def run_digest() -> None:
     """Fetch, process, and send the daily AI news digest."""
     from src.news_fetcher import fetch_all_news
     from src.news_processor import process_news
+    from src.supabase_storage import mark_sent, save_digest
     from src.telegram_sender import send_daily_digest
 
     print("── Step 1: Fetching AI news from the last 24 hours ──")
@@ -29,14 +30,19 @@ def run_digest() -> None:
 
     print("\n── Step 2: Processing & translating with Gemini ──")
     processed = process_news(articles)
-    print(f"Selected top {len(processed)} articles")
+    top_articles = processed[:3]
+    print(f"Selected top {len(top_articles)} articles")
 
-    if not processed:
+    if not top_articles:
         print("No articles after processing. Exiting.")
         return
 
-    print("\n── Step 3: Sending to Telegram ──")
-    send_daily_digest(processed)
+    print("\n── Step 3: Saving to Supabase ──")
+    save_digest(top_articles)
+
+    print("\n── Step 4: Sending to Telegram ──")
+    send_daily_digest(top_articles)
+    mark_sent([a["url"] for a in top_articles])
     print("\n✓ Daily AI news digest sent successfully!")
 
 
