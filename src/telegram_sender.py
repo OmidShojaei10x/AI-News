@@ -1,16 +1,18 @@
 import os
 import time
-from datetime import datetime
 
-import pytz
 import requests
 
 _BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+# Channel: اخبار هوش مصنوعی — https://t.me/+JPVZfc1WuRQ3NGRk
+_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "-1004366053988")
 _API = f"https://api.telegram.org/bot{_BOT_TOKEN}"
 
-_RANK_EMOJIS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
-_WEEKDAYS_FA = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یکشنبه"]
+_SLOT_LABELS = {
+    "morning": "صبح (۹:۰۰)",
+    "noon": "ظهر (۱۲:۰۰)",
+    "evening": "شب (۲۱:۰۰)",
+}
 
 
 def _api(method: str, data: dict, retries: int = 3) -> dict:
@@ -22,7 +24,6 @@ def _api(method: str, data: dict, retries: int = 3) -> dict:
             result = r.json()
             if result.get("ok"):
                 return result
-            # Rate limit
             if result.get("error_code") == 429:
                 wait = result.get("parameters", {}).get("retry_after", delay)
                 print(f"Rate limited; waiting {wait}s")
@@ -62,11 +63,9 @@ def _send_photo(photo_url: str, caption: str) -> dict:
     )
 
 
-def _format_article(article: dict, index: int) -> str:
-    emoji = _RANK_EMOJIS[index] if index < len(_RANK_EMOJIS) else f"{index + 1}."
-
+def _format_article(article: dict) -> str:
     lines = [
-        f"{emoji} <b>{article['title_fa']}</b>",
+        f"🔔 <b>{article['title_fa']}</b>",
         "",
         article["summary_fa"],
         "",
@@ -82,37 +81,32 @@ def _format_article(article: dict, index: int) -> str:
     return "\n".join(lines)
 
 
-def send_daily_digest(articles: list[dict]) -> None:
-    tehran = pytz.timezone("Asia/Tehran")
-    now = datetime.now(tehran)
-    day_name = _WEEKDAYS_FA[now.weekday()]
-    date_str = now.strftime("%Y/%m/%d")
+def send_article(article: dict) -> bool:
+    """Send a single article to Telegram. Returns True on success."""
+    text = _format_article(article)
+    sent = False
 
-    header = (
-        "📡 <b>خبرنامه روزانه هوش مصنوعی</b>\n"
-        f"📅 {day_name} — {date_str}\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"🤖 <b>{len(articles)} خبر مهم</b> از ۲۴ ساعت گذشته در دنیای هوش مصنوعی"
-    )
-    _send_message(header)
-    time.sleep(1)
+    if article.get("image_url"):
+        result = _send_photo(article["image_url"], text)
+        sent = result.get("ok", False)
 
-    for i, article in enumerate(articles):
-        text = _format_article(article, i)
-        sent = False
+    if not sent:
+        result = _send_message(text)
+        sent = result.get("ok", False)
 
-        if article.get("image_url"):
-            result = _send_photo(article["image_url"], text)
-            sent = result.get("ok", False)
+    return sent
 
-        if not sent:
-            _send_message(text)
 
+def send_alerts(articles: list[dict], check_slot: str) -> None:
+    """Send each important article as a separate Telegram message."""
+    if not articles:
+        return
+
+    slot_label = _SLOT_LABELS.get(check_slot, check_slot)
+    sent_count = 0
+    for article in articles:
+        if send_article(article):
+            sent_count += 1
         time.sleep(1.5)
 
-    footer = (
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🔄 این خبرنامه هر روز ساعت ۸ صبح به‌طور خودکار ارسال می‌شود\n"
-        "⚡️ <i>پردازش شده با هوش مصنوعی</i>"
-    )
-    _send_message(footer)
+    print(f"Sent {sent_count} alert(s) to Telegram (slot={slot_label})")
