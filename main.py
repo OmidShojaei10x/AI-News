@@ -1,64 +1,41 @@
-import os
-import sys
-from datetime import datetime
+"""Utilities for AI news check scheduling.
+
+This project is designed to run via Cursor Automation (Composer).
+The agent fetches articles, filters importance, translates to Persian,
+then publishes via scripts/publish_articles.py.
+
+See AUTOMATION_PROMPT.md for the full workflow.
+"""
 
 import pytz
+from datetime import datetime
+
+SLOT_WINDOWS = {
+    "morning": (8 * 60 + 45, 9 * 60 + 30, 24),
+    "noon": (11 * 60 + 45, 12 * 60 + 30, 8),
+    "evening": (20 * 60 + 45, 21 * 60 + 30, 8),
+}
 
 
-def _is_tehran_send_window() -> bool:
-    """Return True if Tehran clock is in the 07:45–08:30 window."""
+def detect_check_slot() -> tuple[str, int]:
+    """Return (check_slot, lookback_hours) based on Tehran time."""
+    import os
+
+    override = os.environ.get("CHECK_SLOT", "").strip().lower()
+    if override in SLOT_WINDOWS:
+        _, _, lookback = SLOT_WINDOWS[override]
+        return override, lookback
+
     tehran = pytz.timezone("Asia/Tehran")
     now = datetime.now(tehran)
     minutes = now.hour * 60 + now.minute
-    return (7 * 60 + 45) <= minutes <= (8 * 60 + 30)
 
+    for slot, (start, end, lookback) in SLOT_WINDOWS.items():
+        if start <= minutes <= end:
+            return slot, lookback
 
-def run_digest() -> None:
-    """Fetch, process, and send the daily AI news digest."""
-    from src.news_fetcher import fetch_all_news
-    from src.news_processor import process_news
-    from src.telegram_sender import send_daily_digest
-
-    print("── Step 1: Fetching AI news from the last 24 hours ──")
-    articles = fetch_all_news()
-    print(f"Total unique articles: {len(articles)}")
-
-    if not articles:
-        print("No articles found. Exiting.")
-        return
-
-    print("\n── Step 2: Processing & translating with Gemini ──")
-    processed = process_news(articles)
-    print(f"Selected top {len(processed)} articles")
-
-    if not processed:
-        print("No articles after processing. Exiting.")
-        return
-
-    print("\n── Step 3: Sending to Telegram ──")
-    send_daily_digest(processed)
-    print("\n✓ Daily AI news digest sent successfully!")
-
-
-def main() -> None:
-    force = os.environ.get("FORCE_SEND", "false").lower() == "true"
-    # GITHUB_EVENT_NAME is set when running inside GitHub Actions
-    github_event = os.environ.get("GITHUB_EVENT_NAME", "")
-
-    skip_check = force or github_event == "workflow_dispatch"
-    if not skip_check and github_event != "schedule":
-        # Running via external scheduler (Railway, Render, cron) — always send
-        skip_check = True
-
-    if not skip_check:
-        if not _is_tehran_send_window():
-            tehran = pytz.timezone("Asia/Tehran")
-            now = datetime.now(tehran)
-            print(f"Outside send window (Tehran: {now.strftime('%H:%M')}). Skipping.")
-            sys.exit(0)
-
-    run_digest()
-
-
-if __name__ == "__main__":
-    main()
+    if minutes < 11 * 60 + 45:
+        return "morning", 24
+    if minutes < 20 * 60 + 45:
+        return "noon", 8
+    return "evening", 8
