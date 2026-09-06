@@ -3,6 +3,8 @@ import time
 
 import requests
 
+from src.rtl_text import fix_rtl
+
 _BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 # Channel: اخبار هوش مصنوعی — https://t.me/+JPVZfc1WuRQ3NGRk
 _CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "-1004366053988")
@@ -64,20 +66,27 @@ def _send_photo(photo_url: str, caption: str) -> dict:
 
 
 def _format_article(article: dict) -> str:
+    title = fix_rtl(article["title_fa"])
+    summary = fix_rtl(article["summary_fa"])
+    source = fix_rtl(article.get("source", ""))
+
     lines = [
-        f"🔔 <b>{article['title_fa']}</b>",
+        f"🔔 <b>{title}</b>",
         "",
-        article["summary_fa"],
+        summary,
         "",
-        f"📰 <b>منبع:</b> {article['source']}",
+        f"📰 <b>{fix_rtl('منبع:')}</b> {source}",
     ]
 
     if article.get("video_url"):
         lines.append(
-            f'🎬 <b>ویدیو:</b> <a href="{article["video_url"]}">مشاهده ویدیو</a>'
+            f'🎬 <b>{fix_rtl("ویدیو:")}</b> '
+            f'<a href="{article["video_url"]}">{fix_rtl("مشاهده ویدیو")}</a>'
         )
 
-    lines.append(f'🔗 <a href="{article["url"]}">مطالعه کامل خبر</a>')
+    lines.append(
+        f'🔗 <a href="{article["url"]}">{fix_rtl("مطالعه کامل خبر")}</a>'
+    )
     return "\n".join(lines)
 
 

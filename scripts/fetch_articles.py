@@ -22,6 +22,11 @@ def main() -> None:
     check_slot, lookback_hours = detect_check_slot()
     articles = fetch_all_news(lookback_hours=lookback_hours)
 
+    # If narrow window finds nothing, expand to 24h to catch missed news
+    if not articles and lookback_hours < 24:
+        lookback_hours = 24
+        articles = fetch_all_news(lookback_hours=lookback_hours)
+
     sent_urls = get_sent_urls()
     if sent_urls:
         articles = [a for a in articles if a["url"] not in sent_urls]
