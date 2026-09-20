@@ -40,27 +40,23 @@ def _parse_date(entry) -> datetime:
 
 
 def _extract_image(entry) -> str:
-    # media:content
     if hasattr(entry, "media_content") and entry.media_content:
         for m in entry.media_content:
             url = m.get("url", "")
             if url:
                 return url
 
-    # media:thumbnail
     if hasattr(entry, "media_thumbnail") and entry.media_thumbnail:
         url = entry.media_thumbnail[0].get("url", "")
         if url:
             return url
 
-    # enclosures
     for enc in getattr(entry, "enclosures", []):
         if "image" in enc.get("type", ""):
             url = enc.get("href") or enc.get("url", "")
             if url:
                 return url
 
-    # look inside HTML content / summary
     for field in ("content", "summary", "description"):
         html = ""
         if field == "content":
@@ -124,9 +120,33 @@ def _clean_description(entry) -> str:
     return ""
 
 
-def _fetch_feed(feed_info: dict) -> list[dict]:
+def fetch_og_image(url: str) -> str:
+    """Scrape og:image from article page when RSS has no image."""
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=15)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        og = soup.find("meta", property="og:image")
+        if og and og.get("content", "").startswith("http"):
+            return og["content"]
+    except Exception as exc:
+        print(f"    OG image scrape failed for {url[:60]}: {exc}")
+    return ""
+
+
+def enrich_images(articles: list[dict]) -> list[dict]:
+    """Fill missing image_url from page OG metadata."""
+    for article in articles:
+        if not article.get("image_url"):
+            og = fetch_og_image(article["url"])
+            if og:
+                article["image_url"] = og
+    return articles
+
+
+def _fetch_feed(feed_info: dict, lookback_hours: int) -> list[dict]:
     articles = []
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
 
     try:
         feed = feedparser.parse(feed_info["url"], request_headers=HEADERS)
@@ -155,17 +175,16 @@ def _fetch_feed(feed_info: dict) -> list[dict]:
     return articles
 
 
-def fetch_all_news() -> list[dict]:
+def fetch_all_news(lookback_hours: int = 24) -> list[dict]:
     all_articles: list[dict] = []
 
     for feed_info in RSS_FEEDS:
         print(f"  Fetching {feed_info['name']}...")
-        articles = _fetch_feed(feed_info)
+        articles = _fetch_feed(feed_info, lookback_hours)
         print(f"    → {len(articles)} articles")
         all_articles.extend(articles)
         time.sleep(0.4)
 
-    # deduplicate by URL
     seen: set[str] = set()
     unique = []
     for a in all_articles:
@@ -173,6 +192,5 @@ def fetch_all_news() -> list[dict]:
             seen.add(a["url"])
             unique.append(a)
 
-    # newest first
     unique.sort(key=lambda x: x["published"], reverse=True)
     return unique
